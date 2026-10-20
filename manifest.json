@@ -1,7 +1,7 @@
 {
   "name": "미국 시장 종합 대시보드",
   "short_name": "미국 시장 대시보드",
-  "start_url": "./index_frankfurter.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0b1220",
   "theme_color": "#121c2e",
