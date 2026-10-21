@@ -64,6 +64,12 @@ h1 {
   padding: 0;
 }
 
+.icon-btn-sm {
+  width: 30px;
+  height: 30px;
+  font-size: 14px;
+}
+
 .icon-btn:hover {
   background: #2458a8;
   border-color: #3978d5;
@@ -119,14 +125,14 @@ button.active {
   min-width: 0;
 }
 
-.macro-card-link {
+.macro-card-link, .news-card-link {
   display: block;
   text-decoration: none;
   color: inherit;
   transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
-.macro-card-link:hover {
+.macro-card-link:hover, .news-card-link:hover {
   transform: translateY(-3px);
   border-color: var(--accent);
 }
@@ -438,7 +444,7 @@ th {
   <main>
     <div class="title-wrap">
       <h1>미국 시장 종합 대시보드</h1>
-      <button class="icon-btn" id="title-refresh" title="새로고침">🔄</button>
+      <button class="icon-btn" id="title-refresh" title="전체 새로고침">🔄</button>
     </div>
     <p class="sub">주가지수 · 국채금리 · 원자재 · 비트코인 및 시총 상위 30위 리스트 분석</p>
 
@@ -458,7 +464,23 @@ th {
       <p id="fx-status" class="sub">환율 데이터 연결 중…</p>
     </section>
 
-    <!-- 💡 3. 핵심 경제 지표 (초기 상태: 축소) -->
+    <!-- 💡 한국어 뉴스 피드가 적용된 실시간 경제 뉴스 브리핑 -->
+    <section class="panel">
+      <div class="accordion-header" id="news-toggle-btn">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <h2>실시간 글로벌 경제 뉴스 브리핑</h2>
+          <button class="icon-btn icon-btn-sm" id="news-refresh-btn" title="뉴스 새로고침">🔄</button>
+        </div>
+        <span class="toggle-icon" id="news-toggle-icon">[ 펼치기 + ]</span>
+      </div>
+      <div class="accordion-content" id="news-content-box">
+        <div id="news-cards" class="cards" style="margin-top: 10px;">
+          <div class="card">실시간 경제 뉴스를 불러오는 중입니다…</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. 핵심 경제 지표 (아코디언) -->
     <section class="panel">
       <div class="accordion-header" id="macro-toggle-btn">
         <div>
@@ -506,8 +528,9 @@ th {
     <!-- 5. 미국 시가총액 상위 30위 종목 리스트 및 히트맵 뷰 -->
     <section class="panel">
       <div class="accordion-header" id="top30-toggle-btn">
-        <div>
+        <div style="display: flex; align-items: center; gap: 8px;">
           <h2>미국 시가총액 상위 30위 종목 맵 (S&P 30 Heatmap)</h2>
+          <button class="icon-btn icon-btn-sm" id="top30-refresh-btn" title="시총 30위 주가 새로고침">🔄</button>
         </div>
         <span class="toggle-icon" id="top30-toggle-icon">[ 펼치기 + ]</span>
       </div>
@@ -544,7 +567,7 @@ th {
       </div>
     </section>
 
-    <p class="notice">데이터 출처: Yahoo Finance 차트 엔드포인트(비공식), Frankfurter API, Investing.com, Trading Economics. 무료 중계 서비스를 활용하므로 데이터 수집이 잠시 지연될 수 있습니다.</p>
+    <p class="notice">데이터 출처: Yahoo Finance, Frankfurter API, Investing.com 코리아 RSS, Trading Economics.</p>
   </main>
 
   <script>
@@ -565,7 +588,6 @@ th {
     ];
 
     const top30Stocks = [
-      // Technology
       { symbol: 'AAPL', name: '애플', sector: 'Technology', weight: 34 },
       { symbol: 'MSFT', name: '마이크로소프트', sector: 'Technology', weight: 31 },
       { symbol: 'NVDA', name: '엔비디아', sector: 'Technology', weight: 30 },
@@ -576,25 +598,21 @@ th {
       { symbol: 'PLTR', name: '팔란티어', sector: 'Technology', weight: 2 },
       { symbol: 'INTC', name: '인텔', sector: 'Technology', weight: 1.5 },
       
-      // Communication Services
       { symbol: 'GOOGL', name: '알파벳 (구글)', sector: 'Communication Services', weight: 21 },
       { symbol: 'META', name: '메타', sector: 'Communication Services', weight: 15 },
       { symbol: 'NFLX', name: '넷플릭스', sector: 'Communication Services', weight: 4 },
       { symbol: 'TMUS', name: '티모바일', sector: 'Communication Services', weight: 2.5 },
 
-      // Consumer Cyclical
       { symbol: 'AMZN', name: '아마존', sector: 'Consumer Cyclical', weight: 20 },
       { symbol: 'TSLA', name: '테슬라', sector: 'Consumer Cyclical', weight: 8 },
       { symbol: 'HD', name: '홈디포', sector: 'Consumer Cyclical', weight: 4 },
       { symbol: 'COST', name: '코스트코', sector: 'Consumer Cyclical', weight: 4 },
 
-      // Healthcare
       { symbol: 'LLY', name: '일라이릴리', sector: 'Healthcare', weight: 8 },
       { symbol: 'UNH', name: '유나이티드헬스', sector: 'Healthcare', weight: 5 },
       { symbol: 'JNJ', name: '존슨앤존슨', sector: 'Healthcare', weight: 4 },
       { symbol: 'ABBV', name: '애브비', sector: 'Healthcare', weight: 3.5 },
 
-      // Financial
       { symbol: 'BRK-B', name: '버크셔 해서웨이', sector: 'Financial', weight: 10 },
       { symbol: 'JPM', name: '제이피모간', sector: 'Financial', weight: 6 },
       { symbol: 'V', name: '비자', sector: 'Financial', weight: 5.5 },
@@ -602,10 +620,8 @@ th {
       { symbol: 'BAC', name: '뱅크오브아메리카', sector: 'Financial', weight: 3 },
       { symbol: 'WFC', name: '웰스파고', sector: 'Financial', weight: 2.5 },
 
-      // Consumer Defensive
       { symbol: 'WMT', name: '월마트', sector: 'Consumer Defensive', weight: 6.5 },
 
-      // Energy
       { symbol: 'XOM', name: '엑슨모빌', sector: 'Energy', weight: 5 },
       { symbol: 'CVX', name: '셰브론', sector: 'Energy', weight: 3 }
     ];
@@ -622,6 +638,7 @@ th {
     const state = {};
     const top30State = {};
     let isTop30Loaded = false;
+    let isNewsLoaded = false;
 
     const fmt = (n, d = 2) => Number(n).toLocaleString('en-US', {minimumFractionDigits: d, maximumFractionDigits: d});
     const dateFmt = s => new Date(s + 'T12:00:00Z').toLocaleDateString('ko-KR', {year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'UTC'});
@@ -677,6 +694,67 @@ th {
       } catch (e) {
         const fxStatus = $('fx-status');
         if (fxStatus) fxStatus.textContent = '환율 데이터 연결 실패';
+      }
+    }
+
+    /* 💡 Investing.com 한국어 RSS 피드 적용 */
+    async function fetchRealtimeNews() {
+      const newsCards = $('news-cards');
+      const btn = $('news-refresh-btn');
+      if (btn) btn.disabled = true;
+      if (newsCards) newsCards.innerHTML = '<div class="card">🔄 실시간 경제 뉴스 피드를 불러오는 중…</div>';
+
+      try {
+        const rssUrl = 'https://kr.investing.com/rss/news.rss';
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(rssUrl)}`;
+        
+        const res = await fetch(proxyUrl, {cache: 'no-store'});
+        const xmlText = await res.text();
+        
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+        const items = xmlDoc.querySelectorAll('item');
+
+        if (items && items.length > 0) {
+          newsCards.innerHTML = '';
+          let count = 0;
+          items.forEach(item => {
+            if (count >= 4) return;
+            const title = item.querySelector('title')?.textContent || '제목 없음';
+            const link = item.querySelector('link')?.textContent || '#';
+            const pubDateStr = item.querySelector('pubDate')?.textContent || '';
+            const desc = item.querySelector('description')?.textContent || '';
+
+            const cleanDesc = desc.replace(/<[^>]*>?/gm, '').slice(0, 120) + '...';
+            const pubDate = pubDateStr ? new Date(pubDateStr).toLocaleString('ko-KR', {month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'}) : '';
+
+            const a = document.createElement('a');
+            a.href = link;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            a.className = 'news-card-link';
+
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.style.height = '100%';
+            card.innerHTML = `
+              <div class="name" style="font-size: 14px; margin-bottom: 6px; line-height: 1.4;">${title}</div>
+              <div class="ticker" style="color: var(--accent);">Investing.com 코리아 · ${pubDate}</div>
+              <div class="meta" style="margin-top: 8px; line-height: 1.35; color: var(--muted);">${cleanDesc}</div>
+              <div class="link-hint">🔗 기사 원문 보기 ↗</div>
+            `;
+            a.appendChild(card);
+            newsCards.appendChild(a);
+            count++;
+          });
+          isNewsLoaded = true;
+        } else {
+          throw new Error('RSS 아이템 없음');
+        }
+      } catch (e) {
+        newsCards.innerHTML = '<div class="card">실시간 뉴스 피드 로드 실패 (네트워크 상태를 확인해주세요.)</div>';
+      } finally {
+        if (btn) btn.disabled = false;
       }
     }
 
@@ -752,9 +830,11 @@ th {
     }
 
     async function loadTop30RealtimeData() {
+      const btn = $('top30-refresh-btn');
+      if (btn) btn.disabled = true;
+
       const treemapContainer = $('treemap-view');
-      const tbody = $('top30-table-rows');
-      if (treemapContainer) treemapContainer.innerHTML = '<div style="width: 100%; text-align: center; padding: 40px; color: var(--muted);">⚡ 실시간 시가총액 상위 30위 종목 및 히트맵을 생성 중입니다…</div>';
+      if (treemapContainer) treemapContainer.innerHTML = '<div style="width: 100%; text-align: center; padding: 40px; color: var(--muted);">⚡ 시가총액 상위 30위 실시간 시세를 갱신 중입니다…</div>';
 
       const range = $('range').value;
       await Promise.all(top30Stocks.map(async (stock) => {
@@ -766,6 +846,8 @@ th {
       isTop30Loaded = true;
       renderTop30Treemap();
       renderTop30Table();
+
+      if (btn) btn.disabled = false;
     }
 
     function getHeatmapColor(pct) {
@@ -1049,16 +1131,21 @@ th {
       canvas.addEventListener('mousemove', (e) => {
         const rect = canvas.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
-        const activeAssets = assets.filter(a => a.visible && state[a.symbol] && state[a.symbol].rows);
-        if (!activeAssets.length) return;
-
-        const numActive = activeAssets.length;
-        const plot = { l: numActive === 1 || numActive === 2 ? 65 : 40, r: numActive === 2 ? 65 : 110, t: 30, b: 35 };
+        const numActive = assets.filter(a => a.visible && state[a.symbol] && state[a.symbol].rows).length;
+        const plot = { 
+          l: numActive === 1 || numActive === 2 ? 65 : 40, 
+          r: numActive === 2 ? 65 : 110, 
+          t: 30, 
+          b: 35 
+        };
         const w = canvas.clientWidth;
         const pw = w - plot.l - plot.r;
 
         if (mouseX >= plot.l && mouseX <= w - plot.r) {
           const ratio = (mouseX - plot.l) / pw;
+          const activeAssets = assets.filter(a => a.visible && state[a.symbol] && state[a.symbol].rows);
+          if (!activeAssets.length) return;
+
           const refRows = state[activeAssets[0].symbol].rows;
           const idx = Math.min(Math.max(0, Math.round(ratio * (refRows.length - 1))), refRows.length - 1);
           currentHoverIndex = idx;
@@ -1088,27 +1175,67 @@ th {
     }
 
     function setupAccordions() {
+      const newsHeader = $('news-toggle-btn');
+      const newsContent = $('news-content-box');
+      const newsIcon = $('news-toggle-icon');
+      const newsRefreshBtn = $('news-refresh-btn');
+
+      if (newsHeader && newsContent) {
+        newsHeader.addEventListener('click', () => {
+          const isExpanded = newsContent.classList.toggle('expanded');
+          if (newsIcon) newsIcon.textContent = isExpanded ? '[ 접기 - ]' : '[ 펼치기 + ]';
+          if (isExpanded && !isNewsLoaded) {
+            fetchRealtimeNews();
+          }
+        });
+      }
+
+      if (newsRefreshBtn) {
+        newsRefreshBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (!newsContent.classList.contains('expanded')) {
+            newsContent.classList.add('expanded');
+            if (newsIcon) newsIcon.textContent = '[ 접기 - ]';
+          }
+          fetchRealtimeNews();
+        });
+      }
+
       const macroHeader = $('macro-toggle-btn');
       const macroContent = $('macro-content-box');
       const macroIcon = $('macro-toggle-icon');
+
       if (macroHeader && macroContent) {
         macroHeader.addEventListener('click', () => {
           const isExpanded = macroContent.classList.toggle('expanded');
-          macroIcon.textContent = isExpanded ? '[ 접기 - ]' : '[ 펼치기 + ]';
+          if (macroIcon) macroIcon.textContent = isExpanded ? '[ 접기 - ]' : '[ 펼치기 + ]';
         });
       }
 
       const top30Header = $('top30-toggle-btn');
       const top30Content = $('top30-content-box');
       const top30Icon = $('top30-toggle-icon');
+      const top30RefreshBtn = $('top30-refresh-btn');
+
       if (top30Header && top30Content) {
         top30Header.addEventListener('click', () => {
           const isExpanded = top30Content.classList.toggle('expanded');
-          top30Icon.textContent = isExpanded ? '[ 접기 - ]' : '[ 펼치기 + ]';
-          
+          if (top30Icon) top30Icon.textContent = isExpanded ? '[ 접기 - ]' : '[ 펼치기 + ]';
+
           if (isExpanded && !isTop30Loaded) {
             loadTop30RealtimeData();
           }
+        });
+      }
+
+      if (top30RefreshBtn) {
+        top30RefreshBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (!top30Content.classList.contains('expanded')) {
+            top30Content.classList.add('expanded');
+            if (top30Icon) top30Icon.textContent = '[ 접기 - ]';
+          }
+          loadTop30RealtimeData();
         });
       }
 
@@ -1157,6 +1284,9 @@ th {
         drawIntegratedChart();
         setupChartHover();
 
+        if ($('news-content-box').classList.contains('expanded')) {
+          fetchRealtimeNews();
+        }
         if ($('top30-content-box').classList.contains('expanded')) {
           loadTop30RealtimeData();
         }
