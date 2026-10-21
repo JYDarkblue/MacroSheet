@@ -4,6 +4,9 @@
 
 ---
 
+## 🚀 바로 가기 : https://jydarkblue.github.io/MacroSheet/
+
+---
 ## ✨ 주요 기능
 
 1. **주요 시장 지표 요약**
@@ -33,5 +36,6 @@
 
 ---
 
-## ScreenShot
-<img width="999" height="865" alt="image" src="https://github.com/user-attachments/assets/9c09c873-dc85-41c7-8c50-7549ff0ed578" />
+## 🌟 ScreenShot
+<img width="507" height="879" alt="image" src="https://github.com/user-attachments/assets/ecc32876-89c8-42bc-b3e1-953553c2f8d7" />
+
