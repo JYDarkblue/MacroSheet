@@ -13,8 +13,8 @@
   --text: #e8eef8;
   --muted: #9eacc2;
   --accent: #72a7ff;
-  --green: #35d39a;
-  --red: #ff7f91;
+  --green: #22c55e;
+  --red: #ef4444;
   --up-color: #ff5252;
   --down-color: #448aff;
 }
@@ -83,13 +83,25 @@ h1 {
   margin: 0 0 18px;
 }
 
-select {
+select, button {
   background: #1b2940;
   color: var(--text);
   border: 1px solid #3a4c68;
   border-radius: 9px;
-  padding: 10px 13px;
+  padding: 8px 12px;
   font: inherit;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #2458a8;
+  border-color: #3978d5;
+}
+
+button.active {
+  background: #2458a8;
+  border-color: #72a7ff;
+  font-weight: 600;
 }
 
 .cards {
@@ -105,6 +117,18 @@ select {
   border-radius: 14px;
   padding: 16px;
   min-width: 0;
+}
+
+.macro-card-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.macro-card-link:hover {
+  transform: translateY(-3px);
+  border-color: var(--accent);
 }
 
 .name {
@@ -142,6 +166,15 @@ select {
   font-size: 12px;
   color: var(--muted);
   margin-top: 8px;
+}
+
+.link-hint {
+  font-size: 11px;
+  color: var(--accent);
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .panel {
@@ -275,7 +308,6 @@ th {
   overflow: auto;
 }
 
-/* 확장/축소(Accordion) 스타일 */
 .accordion-header {
   display: flex;
   justify-content: space-between;
@@ -302,14 +334,91 @@ th {
   font-weight: bold;
 }
 
+/* 주식 트라이맵(Treemap/히트맵) 스타일 */
+.treemap-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+  min-height: 520px;
+  background: #090d16;
+  border-radius: 10px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  margin-top: 10px;
+}
+
+.sector-block {
+  display: flex;
+  flex-direction: column;
+  background: #101726;
+  border: 1px solid #1e293b;
+  border-radius: 6px;
+  padding: 4px;
+  box-sizing: border-box;
+}
+
+.sector-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  padding: 2px 4px 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sector-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  flex: 1;
+}
+
+.stock-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  padding: 4px;
+  color: #ffffff;
+  text-align: center;
+  font-weight: 700;
+  transition: transform 0.15s ease, filter 0.15s ease;
+  cursor: pointer;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+}
+
+.stock-node:hover {
+  transform: scale(1.02);
+  filter: brightness(1.2);
+  z-index: 10;
+}
+
+.stock-node .symbol {
+  font-size: clamp(11px, 1.4vw, 18px);
+  line-height: 1.1;
+}
+
+.stock-node .pct {
+  font-size: clamp(10px, 1.1vw, 14px);
+  margin-top: 2px;
+  font-weight: 600;
+  opacity: 0.95;
+}
+
+.stock-node .price-sub {
+  font-size: 10px;
+  opacity: 0.8;
+  font-weight: 400;
+}
+
 .notice {
   font-size: 12px;
   color: var(--muted);
   margin-top: 16px;
-}
-
-.error {
-  color: #ffb3bd;
 }
 
 @media(max-width: 600px) {
@@ -331,7 +440,7 @@ th {
       <h1>미국 시장 종합 대시보드</h1>
       <button class="icon-btn" id="title-refresh" title="새로고침">🔄</button>
     </div>
-    <p class="sub">주가지수 · 국채금리 · 원자재 · 비트코인 · 물가 및 시총 상위 30위 리스트 분석</p>
+    <p class="sub">주가지수 · 국채금리 · 원자재 · 비트코인 및 시총 상위 30위 리스트 분석</p>
 
     <!-- 1. 주요 시장 지표 요약 카드 -->
     <h2 class="section-title">주요 시장 지표</h2>
@@ -349,28 +458,34 @@ th {
       <p id="fx-status" class="sub">환율 데이터 연결 중…</p>
     </section>
 
-    <!-- 3. 핵심 경제 지표 -->
+    <!-- 💡 3. 핵심 경제 지표 (초기 상태: 축소) -->
     <section class="panel">
-      <h2>핵심 경제 지표</h2>
-      <p class="sub">CPI · PPI · 실업률 · 비농업 고용 · GDP 성장률 (월별/분기별 최근 발표치)</p>
-      <div id="macro-cards" class="cards">
-        <div class="card">경제 지표를 불러오는 중…</div>
+      <div class="accordion-header" id="macro-toggle-btn">
+        <div>
+          <h2>핵심 경제 지표 (실시간 상세 보기)</h2>
+          <p class="sub" style="margin: 2px 0 0;">클릭 시 해당 지표의 상세 캘린더/차트 페이지로 이동합니다.</p>
+        </div>
+        <span class="toggle-icon" id="macro-toggle-icon">[ 펼치기 + ]</span>
       </div>
-      <p id="macro-status" class="sub">경제 지표 데이터 수집 중…</p>
+      <div class="accordion-content" id="macro-content-box">
+        <div id="macro-cards" class="cards" style="margin-top: 10px;">
+          <!-- 자바스크립트로 동적 렌더링 -->
+        </div>
+      </div>
     </section>
 
-    <!-- 4. 통합 주요 지표 및 물가 추이 차트 -->
+    <!-- 4. 통합 주요 지표 추이 차트 -->
     <section class="panel">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
         <div>
-          <h2>주요 지표 및 물가 통합 추이 차트</h2>
-          <p class="sub" style="margin: 2px 0 0;">주가, 국채금리, 원자재 및 거시경제 지표 비교</p>
+          <h2>주요 지표 추이 차트</h2>
+          <p class="sub" style="margin: 2px 0 0;">1개/2개 선택 시 실제 데이터 수치 축 표시, 3개 이상 선택 시 변동률(%) 비교</p>
         </div>
         <div>
           <label for="range" style="font-size: 13px; color: var(--muted); margin-right: 6px;">조회 기간:</label>
           <select id="range">
-            <option value="1w">1주일</option>
-            <option value="1mo" selected>1개월</option>
+            <option value="1w" selected>1주일</option>
+            <option value="1mo">1개월</option>
             <option value="3mo">3개월</option>
             <option value="6mo">6개월</option>
             <option value="1y">1년</option>
@@ -388,17 +503,26 @@ th {
       </div>
     </section>
 
-    <!-- 5. 미국 시가총액 상위 30위 종목 리스트 레이아웃 -->
+    <!-- 5. 미국 시가총액 상위 30위 종목 리스트 및 히트맵 뷰 -->
     <section class="panel">
       <div class="accordion-header" id="top30-toggle-btn">
         <div>
-          <h2>미국 시가총액 상위 30위 종목 리스트</h2>
+          <h2>미국 시가총액 상위 30위 종목 맵 (S&P 30 Heatmap)</h2>
         </div>
-        <span class="toggle-icon" id="toggle-icon-text">[ 펼치기 + ]</span>
+        <span class="toggle-icon" id="top30-toggle-icon">[ 펼치기 + ]</span>
       </div>
 
       <div class="accordion-content" id="top30-content-box">
-        <div class="tablewrap" style="margin-top: 10px;">
+        <div style="display: flex; gap: 8px; margin-top: 10px; margin-bottom: 10px;">
+          <button id="view-heatmap-btn" class="active">🗺️ 히트맵 보기</button>
+          <button id="view-table-btn">📋 리스트 표 보기</button>
+        </div>
+
+        <div id="treemap-view" class="treemap-container">
+          <div style="width: 100%; text-align: center; padding: 40px; color: var(--muted);">데이터를 불러오는 중입니다…</div>
+        </div>
+
+        <div id="table-view" class="tablewrap" style="display: none; margin-top: 10px;">
           <table>
             <thead>
               <tr>
@@ -420,7 +544,7 @@ th {
       </div>
     </section>
 
-    <p class="notice">데이터 출처: Yahoo Finance 차트 엔드포인트(비공식), Frankfurter API, FRED/USBLS 거시경제지표. 무료 서비스·중계 주소는 제한, 지연 또는 중단될 수 있습니다.</p>
+    <p class="notice">데이터 출처: Yahoo Finance 차트 엔드포인트(비공식), Frankfurter API, Investing.com, Trading Economics. 무료 중계 서비스를 활용하므로 데이터 수집이 잠시 지연될 수 있습니다.</p>
   </main>
 
   <script>
@@ -428,60 +552,81 @@ th {
     'use strict';
     
     const assets = [
-      { symbol: '^GSPC', name: 'S&P 500', unit: '포인트', kind: 'index', color: '#818cf8', visible: true, type: 'market' },
-      { symbol: '^IXIC', name: 'NASDAQ', unit: '포인트', kind: 'index', color: '#38bdf8', visible: true, type: 'market' },
-      { symbol: '^DJI', name: 'Dow Jones', unit: '포인트', kind: 'index', color: '#2dd4bf', visible: false, type: 'market' },
-      { symbol: '^TNX', name: '미국 10년물 국채금리', unit: '%', kind: 'yield', color: '#f472b6', visible: true, type: 'market' },
-      { symbol: '^IRX', name: '미국 2년물 국채금리', unit: '%', kind: 'yield', color: '#fbbf24', visible: false, type: 'market' },
-      { symbol: 'CL=F', name: 'WTI 원유', unit: 'USD/배럴', kind: 'commodity', color: '#f87171', visible: true, type: 'market' },
-      { symbol: 'BZ=F', name: '브렌트유', unit: 'USD/배럴', kind: 'commodity', color: '#fb923c', visible: false, type: 'market' },
-      { symbol: 'GC=F', name: '금 선물', unit: 'USD/트로이온스', kind: 'commodity', color: '#facc15', visible: true, type: 'market' },
-      { symbol: 'SI=F', name: '은 선물', unit: 'USD/트로이온스', kind: 'commodity', color: '#c084fc', visible: false, type: 'market' },
-      { symbol: 'BTC-USD', name: '비트코인', unit: 'USD', kind: 'crypto', color: '#4ade80', visible: false, type: 'market' },
-      { symbol: 'CPI_YoY', name: 'CPI 소비자물가 (YoY)', unit: '%', kind: 'macro', color: '#a78bfa', visible: true, type: 'macro' },
-      { symbol: 'PPI_YoY', name: 'PPI 생산자물가 (YoY)', unit: '%', kind: 'macro', color: '#fb7185', visible: true, type: 'macro' }
+      { symbol: '^GSPC', name: 'S&P 500', unit: '포인트', kind: 'index', color: '#818cf8', visible: true },
+      { symbol: '^IXIC', name: 'NASDAQ', unit: '포인트', kind: 'index', color: '#38bdf8', visible: false },
+      { symbol: '^DJI', name: 'Dow Jones', unit: '포인트', kind: 'index', color: '#2dd4bf', visible: false },
+      { symbol: '^TNX', name: '미국 10년물 국채금리', unit: '%', kind: 'yield', color: '#f472b6', visible: true },
+      { symbol: '^IRX', name: '미국 2년물 국채금리', unit: '%', kind: 'yield', color: '#fbbf24', visible: false },
+      { symbol: 'CL=F', name: 'WTI 원유', unit: 'USD/배럴', kind: 'commodity', color: '#f87171', visible: false },
+      { symbol: 'BZ=F', name: '브렌트유', unit: 'USD/배럴', kind: 'commodity', color: '#fb923c', visible: true },
+      { symbol: 'GC=F', name: '금 선물', unit: 'USD/트로이온스', kind: 'commodity', color: '#facc15', visible: true },
+      { symbol: 'SI=F', name: '은 선물', unit: 'USD/트로이온스', kind: 'commodity', color: '#c084fc', visible: false },
+      { symbol: 'BTC-USD', name: '비트코인', unit: 'USD', kind: 'crypto', color: '#4ade80', visible: false }
     ];
 
     const top30Stocks = [
-      { symbol: 'AAPL', name: '애플 (Apple)' },
-      { symbol: 'MSFT', name: '마이크로소프트 (Microsoft)' },
-      { symbol: 'NVDA', name: '엔비디아 (NVIDIA)' },
-      { symbol: 'GOOGL', name: '알파벳 구글 (Alphabet)' },
-      { symbol: 'AMZN', name: '아마존 (Amazon)' },
-      { symbol: 'META', name: '메타 (Meta Platforms)' },
-      { symbol: 'BRK-B', name: '버크셔 해서웨이 (Berkshire Hathaway)' },
-      { symbol: 'LLY', name: '일라이릴리 (Eli Lilly)' },
-      { symbol: 'AVGO', name: '브로드컴 (Broadcom)' },
-      { symbol: 'TSLA', name: '테슬라 (Tesla)' },
-      { symbol: 'JPM', name: '제이피모간 체이스 (JPMorgan Chase)' },
-      { symbol: 'WMT', name: '월마트 (Walmart)' },
-      { symbol: 'V', name: '비자 (Visa)' },
-      { symbol: 'XOM', name: '엑슨모빌 (Exxon Mobil)' },
-      { symbol: 'MA', name: '마스터카드 (Mastercard)' },
-      { symbol: 'UNH', name: '유나이티드헬스 (UnitedHealth)' },
-      { symbol: 'NFLX', name: '넷플릭스 (Netflix)' },
-      { symbol: 'PG', name: '프록터앤갬블 (Procter & Gamble)' },
-      { symbol: 'JNJ', name: '존슨앤존슨 (Johnson & Johnson)' },
-      { symbol: 'COST', name: '코스트코 (Costco)' },
-      { symbol: 'HD', name: '홈디포 (Home Depot)' },
-      { symbol: 'BAC', name: '뱅크오브아메리카 (Bank of America)' },
-      { symbol: 'ABBV', name: '애브비 (AbbVie)' },
-      { symbol: 'PLTR', name: '팔란티어 (Palantir)' },
-      { symbol: 'AMD', name: 'AMD' },
-      { symbol: 'CRM', name: '세일즈포스 (Salesforce)' },
-      { symbol: 'CVX', name: '셰브론 (Chevron)' },
-      { symbol: 'TMUS', name: '티모바일 (T-Mobile)' },
-      { symbol: 'WFC', name: '웰스파고 (Wells Fargo)' },
-      { symbol: 'INTC', name: '인텔 (Intel)' }
+      // Technology
+      { symbol: 'AAPL', name: '애플', sector: 'Technology', weight: 34 },
+      { symbol: 'MSFT', name: '마이크로소프트', sector: 'Technology', weight: 31 },
+      { symbol: 'NVDA', name: '엔비디아', sector: 'Technology', weight: 30 },
+      { symbol: 'AVGO', name: '브로드컴', sector: 'Technology', weight: 8 },
+      { symbol: 'AMD', name: 'AMD', sector: 'Technology', weight: 3 },
+      { symbol: 'MU', name: '마이크론', sector: 'Technology', weight: 3 },
+      { symbol: 'CRM', name: '세일즈포스', sector: 'Technology', weight: 3 },
+      { symbol: 'PLTR', name: '팔란티어', sector: 'Technology', weight: 2 },
+      { symbol: 'INTC', name: '인텔', sector: 'Technology', weight: 1.5 },
+      
+      // Communication Services
+      { symbol: 'GOOGL', name: '알파벳 (구글)', sector: 'Communication Services', weight: 21 },
+      { symbol: 'META', name: '메타', sector: 'Communication Services', weight: 15 },
+      { symbol: 'NFLX', name: '넷플릭스', sector: 'Communication Services', weight: 4 },
+      { symbol: 'TMUS', name: '티모바일', sector: 'Communication Services', weight: 2.5 },
+
+      // Consumer Cyclical
+      { symbol: 'AMZN', name: '아마존', sector: 'Consumer Cyclical', weight: 20 },
+      { symbol: 'TSLA', name: '테슬라', sector: 'Consumer Cyclical', weight: 8 },
+      { symbol: 'HD', name: '홈디포', sector: 'Consumer Cyclical', weight: 4 },
+      { symbol: 'COST', name: '코스트코', sector: 'Consumer Cyclical', weight: 4 },
+
+      // Healthcare
+      { symbol: 'LLY', name: '일라이릴리', sector: 'Healthcare', weight: 8 },
+      { symbol: 'UNH', name: '유나이티드헬스', sector: 'Healthcare', weight: 5 },
+      { symbol: 'JNJ', name: '존슨앤존슨', sector: 'Healthcare', weight: 4 },
+      { symbol: 'ABBV', name: '애브비', sector: 'Healthcare', weight: 3.5 },
+
+      // Financial
+      { symbol: 'BRK-B', name: '버크셔 해서웨이', sector: 'Financial', weight: 10 },
+      { symbol: 'JPM', name: '제이피모간', sector: 'Financial', weight: 6 },
+      { symbol: 'V', name: '비자', sector: 'Financial', weight: 5.5 },
+      { symbol: 'MA', name: '마스터카드', sector: 'Financial', weight: 4.5 },
+      { symbol: 'BAC', name: '뱅크오브아메리카', sector: 'Financial', weight: 3 },
+      { symbol: 'WFC', name: '웰스파고', sector: 'Financial', weight: 2.5 },
+
+      // Consumer Defensive
+      { symbol: 'WMT', name: '월마트', sector: 'Consumer Defensive', weight: 6.5 },
+
+      // Energy
+      { symbol: 'XOM', name: '엑슨모빌', sector: 'Energy', weight: 5 },
+      { symbol: 'CVX', name: '셰브론', sector: 'Energy', weight: 3 }
+    ];
+
+    const macroIndicators = [
+      { name: '미국 근원 CPI', ticker: 'Core CPI', desc: '식료품·에너지 제외 소비자물가지수', link: 'https://kr.investing.com/economic-calendar/core-cpi-736', source: 'Investing.com' },
+      { name: '미국 헤드라인 CPI', ticker: 'CPI YoY', desc: '전체 소비자물가지수 발표', link: 'https://kr.investing.com/economic-calendar/cpi-733', source: 'Investing.com' },
+      { name: '미국 비농업고용지수', ticker: 'NFP', desc: '비농업 부문 신규 고용자 수 변화', link: 'https://kr.investing.com/economic-calendar/nonfarm-payrolls-227', source: 'Investing.com' },
+      { name: '미국 실업률', ticker: 'Unemployment Rate', desc: '미국 노동부 발표 실업률', link: 'https://kr.investing.com/economic-calendar/unemployment-rate-300', source: 'Investing.com' },
+      { name: '미국 신규 실업 수당', ticker: 'Jobless Claims', desc: '주간 신규 실업수당 청구건수', link: 'https://ko.tradingeconomics.com/united-states/jobless-claims', source: 'Trading Economics' }
     ];
 
     const $ = id => document.getElementById(id);
     const state = {};
     const top30State = {};
+    let isTop30Loaded = false;
+
     const fmt = (n, d = 2) => Number(n).toLocaleString('en-US', {minimumFractionDigits: d, maximumFractionDigits: d});
     const dateFmt = s => new Date(s + 'T12:00:00Z').toLocaleDateString('ko-KR', {year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'UTC'});
 
-    /* ---------------- 환율 및 거시경제 ---------------- */
+    /* ---------------- 환율 데이터 ---------------- */
     const fxState = {};
     function renderFx() {
       const host = $('fx-cards');
@@ -535,33 +680,30 @@ th {
       }
     }
 
-    const macroState = {
-      items: [
-        { id: 'cpi', name: 'CPI 소비자물가 (YoY)', ticker: 'CPI YoY', value: 2.5, unit: '%', date: '2026-09' },
-        { id: 'ppi', name: 'PPI 생산자물가 (YoY)', ticker: 'PPI YoY', value: 1.8, unit: '%', date: '2026-09' },
-        { id: 'unemp', name: '실업률 (Unemployment)', ticker: 'UNRATE', value: 4.2, unit: '%', date: '2026-09' },
-        { id: 'nfp', name: '비농업 신규고용 (NFP)', ticker: 'PAYEMS', value: 142, unit: '천 명', date: '2026-09' },
-        { id: 'gdp', name: 'GDP 성장률 (QoQ)', ticker: 'GDP QoQ', value: 3.0, unit: '%', date: '2026 Q2' }
-      ]
-    };
-
-    function renderMacro() {
+    function renderMacroCards() {
       const host = $('macro-cards');
       if (!host) return;
       host.innerHTML = '';
-      macroState.items.forEach(item => {
+      macroIndicators.forEach(item => {
+        const a = document.createElement('a');
+        a.href = item.link;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.className = 'macro-card-link';
+
         const card = document.createElement('div');
         card.className = 'card';
+        card.style.height = '100%';
         card.innerHTML = `
           <div class="name">${item.name}</div>
           <div class="ticker">${item.ticker}</div>
-          <div class="price">${fmt(item.value, 1)} ${item.unit}</div>
-          <div class="meta">발표 기준: ${item.date}</div>
+          <div class="price" style="font-size: 18px; margin: 12px 0 6px; color: var(--accent);">상세 캘린더 보기 ↗</div>
+          <div class="meta">${item.desc}</div>
+          <div class="link-hint">🔗 ${item.source} 이동</div>
         `;
-        host.appendChild(card);
+        a.appendChild(card);
+        host.appendChild(a);
       });
-      const macroStatus = $('macro-status');
-      if (macroStatus) macroStatus.style.display = 'none';
     }
 
     async function fetchSingleSymbol(sym, range) {
@@ -582,17 +724,6 @@ th {
     }
 
     async function fetchAsset(item, range) {
-      if (item.type === 'macro') {
-        const refAsset = assets.find(a => a.type === 'market' && state[a.symbol]);
-        let refRows = refAsset ? state[refAsset.symbol].rows : null;
-        if (!refRows) {
-          const tempRes = await fetchSingleSymbol('^GSPC', range);
-          refRows = tempRes.rows;
-        }
-        const baseVal = item.symbol === 'CPI_YoY' ? 2.5 : 1.8;
-        const rows = refRows.map(r => ({ date: r.date, close: baseVal }));
-        return { ...item, rows };
-      }
       const res = await fetchSingleSymbol(item.symbol, range);
       return { ...item, ...res };
     }
@@ -600,10 +731,11 @@ th {
     function renderCards() {
       const host = $('cards');
       host.innerHTML = '';
-      assets.filter(item => item.type === 'market').forEach(item => {
+      assets.forEach(item => {
         const d = state[item.symbol], card = document.createElement('div');
         card.className = 'card';
-        const latest = d && d.rows[d.rows.length - 1], prev = d && d.rows[d.rows.length - 2];
+        const latest = d && d.rows && d.rows[d.rows.length - 1];
+        const prev = d && d.rows && d.rows[d.rows.length - 2];
         let delta = null, pct = null;
         if (latest && prev && prev.close) {
           delta = latest.close - prev.close;
@@ -616,6 +748,105 @@ th {
           <div class="change ${delta >= 0 ? 'positive' : 'negative'}">${delta !== null ? (delta >= 0 ? '+' : '') + fmt(delta, 2) + ' (' + (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%)' : ''}</div>
         `;
         host.appendChild(card);
+      });
+    }
+
+    async function loadTop30RealtimeData() {
+      const treemapContainer = $('treemap-view');
+      const tbody = $('top30-table-rows');
+      if (treemapContainer) treemapContainer.innerHTML = '<div style="width: 100%; text-align: center; padding: 40px; color: var(--muted);">⚡ 실시간 시가총액 상위 30위 종목 및 히트맵을 생성 중입니다…</div>';
+
+      const range = $('range').value;
+      await Promise.all(top30Stocks.map(async (stock) => {
+        try {
+          top30State[stock.symbol] = await fetchSingleSymbol(stock.symbol, range);
+        } catch(e) {}
+      }));
+      
+      isTop30Loaded = true;
+      renderTop30Treemap();
+      renderTop30Table();
+    }
+
+    function getHeatmapColor(pct) {
+      if (pct === null || isNaN(pct)) return '#334155';
+      const absPct = Math.min(Math.abs(pct), 3.0);
+      const intensity = 0.35 + (absPct / 3.0) * 0.55;
+
+      if (pct > 0) {
+        return `rgba(34, 197, 94, ${intensity})`;
+      } else if (pct < 0) {
+        return `rgba(239, 68, 68, ${intensity})`;
+      } else {
+        return '#334155';
+      }
+    }
+
+    function renderTop30Treemap() {
+      const container = $('treemap-view');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const sectors = {};
+      top30Stocks.forEach(stock => {
+        if (!sectors[stock.sector]) sectors[stock.sector] = [];
+        sectors[stock.sector].push(stock);
+      });
+
+      const sectorWeights = {};
+      let totalWeight = 0;
+      Object.keys(sectors).forEach(sec => {
+        const secWeight = sectors[sec].reduce((acc, s) => acc + s.weight, 0);
+        sectorWeights[sec] = secWeight;
+        totalWeight += secWeight;
+      });
+
+      Object.keys(sectors).forEach(secName => {
+        const secBlock = document.createElement('div');
+        secBlock.className = 'sector-block';
+        
+        const secRatio = (sectorWeights[secName] / totalWeight) * 100;
+        secBlock.style.flex = `${secRatio} 1 ${Math.max(secRatio * 5, 140)}px`;
+
+        const title = document.createElement('div');
+        title.className = 'sector-title';
+        title.textContent = secName;
+        secBlock.appendChild(title);
+
+        const grid = document.createElement('div');
+        grid.className = 'sector-grid';
+
+        sectors[secName].forEach(stock => {
+          const d = top30State[stock.symbol];
+          const latest = d && d.rows ? d.rows[d.rows.length - 1] : null;
+          const prev = d && d.rows ? d.rows[d.rows.length - 2] : null;
+
+          let pct = null;
+          if (latest && prev && latest.close && prev.close) {
+            pct = ((latest.close - prev.close) / prev.close) * 100;
+          }
+
+          const node = document.createElement('div');
+          node.className = 'stock-node';
+          node.style.flex = `${stock.weight} 1 ${Math.max(stock.weight * 12, 60)}px`;
+          node.style.backgroundColor = getHeatmapColor(pct);
+
+          const sign = pct !== null && pct >= 0 ? '+' : '';
+          const pctStr = pct !== null ? `${sign}${pct.toFixed(2)}%` : '-';
+          const priceStr = latest ? `$${fmt(latest.close, 2)}` : '';
+
+          node.title = `${stock.name} (${stock.symbol})\n현재가: ${priceStr}\n등락률: ${pctStr}`;
+          node.innerHTML = `
+            <div class="symbol">${stock.symbol}</div>
+            <div class="pct">${pctStr}</div>
+            <div class="price-sub">${priceStr}</div>
+          `;
+
+          grid.appendChild(node);
+        });
+
+        secBlock.appendChild(grid);
+        container.appendChild(secBlock);
       });
     }
 
@@ -642,7 +873,7 @@ th {
         tr.innerHTML = `
           <td style="text-align: left; font-weight: 650; color: var(--accent);">${stock.symbol}</td>
           <td style="text-align: left;">${stock.name}</td>
-          <td>${latest ? '$' + fmt(latest.close, 2) : '조회 중…'}</td>
+          <td>${latest ? '$' + fmt(latest.close, 2) : '조회 실패'}</td>
           <td>${prev ? '$' + fmt(prev.close, 2) : '-'}</td>
           <td class="${cls}">${delta !== null ? sign + fmt(delta, 2) : '-'}</td>
           <td class="${cls}">${pct !== null ? sign + pct.toFixed(2) + '%' : '-'}</td>
@@ -693,7 +924,13 @@ th {
       const activeAssets = assets.filter(a => a.visible && state[a.symbol] && state[a.symbol].rows && state[a.symbol].rows.length > 0);
       if (!activeAssets.length) return;
 
-      const plot = { l: 40, r: 110, t: 30, b: 35 };
+      const numActive = activeAssets.length;
+      const plot = { 
+        l: numActive === 1 || numActive === 2 ? 65 : 40, 
+        r: numActive === 2 ? 65 : 110, 
+        t: 30, 
+        b: 35 
+      };
       const pw = w - plot.l - plot.r;
       const ph = h - plot.t - plot.b;
 
@@ -704,56 +941,104 @@ th {
         ctx.beginPath(); ctx.moveTo(plot.l, y); ctx.lineTo(w - plot.r, y); ctx.stroke();
       }
 
-      const assetSeries = activeAssets.map(item => {
-        const rows = state[item.symbol].rows.filter(r => r.close !== null);
-        const baseVal = rows[0].close || 1;
-        const normValues = rows.map(r => ((r.close - baseVal) / baseVal) * 100);
-        return { item, rows, normValues };
-      });
+      if (numActive === 1 || numActive === 2) {
+        activeAssets.forEach((item, idx) => {
+          const rows = state[item.symbol].rows.filter(r => r.close !== null);
+          const vals = rows.map(r => r.close);
+          const minV = Math.min(...vals);
+          const maxV = Math.max(...vals);
+          const margin = (maxV - minV) * 0.1 || (minV * 0.05) || 1;
+          const yMin = minV - margin;
+          const yMax = maxV + margin;
+          const yRange = yMax - yMin || 1;
 
-      const count = activeAssets.length;
-      const offsetStep = count > 1 ? (ph * 0.5) / (count - 1) : 0;
-      const refRows = assetSeries[0].rows;
-
-      assetSeries.forEach((series, idx) => {
-        const { item, rows, normValues } = series;
-        const minP = Math.min(...normValues);
-        const maxP = Math.max(...normValues);
-        const margin = (maxP - minP) * 0.12 || 2;
-        const range = (maxP + margin) - (minP - margin) || 1;
-        const baseCenterY = plot.t + ph * 0.25 + idx * offsetStep;
-
-        ctx.strokeStyle = item.color;
-        ctx.lineWidth = 2.2;
-        ctx.beginPath();
-
-        const pts = [];
-        rows.forEach((r, i) => {
-          const x = plot.l + (rows.length < 2 ? 0 : (i / (rows.length - 1)) * pw);
-          const y = baseCenterY - ((normValues[i] - (minP + maxP) / 2) / range) * (ph * 0.35);
-          pts.push({ x, y, close: r.close, date: r.date });
-          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-        });
-        ctx.stroke();
-
-        const lastPt = pts[pts.length - 1];
-        if (lastPt && currentHoverIndex === null) {
+          ctx.font = '11px system-ui';
           ctx.fillStyle = item.color;
-          ctx.beginPath(); ctx.arc(lastPt.x, lastPt.y, 4, 0, Math.PI * 2); ctx.fill();
-          ctx.font = 'bold 12px system-ui';
-          ctx.fillText(fmt(lastPt.close, 2) + (item.unit === '%' ? '%' : ''), lastPt.x + 8, lastPt.y + 4);
-        }
-
-        if (currentHoverIndex !== null && currentHoverIndex < pts.length) {
-          const hoverPt = pts[currentHoverIndex];
-          if (hoverPt && idx === 0) {
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-            ctx.setLineDash([4, 4]);
-            ctx.beginPath(); ctx.moveTo(hoverPt.x, plot.t); ctx.lineTo(hoverPt.x, plot.t + ph); ctx.stroke();
-            ctx.setLineDash([]);
+          for (let j = 0; j <= 4; j++) {
+            const val = yMax - (yRange * j) / 4;
+            const y = plot.t + (ph * j) / 4;
+            const valStr = fmt(val, val > 100 ? 1 : 2) + (item.unit === '%' ? '%' : '');
+            if (idx === 0) {
+              ctx.textAlign = 'right';
+              ctx.fillText(valStr, plot.l - 8, y + 4);
+            } else if (idx === 1) {
+              ctx.textAlign = 'left';
+              ctx.fillText(valStr, w - plot.r + 8, y + 4);
+            }
           }
-        }
-      });
+
+          ctx.strokeStyle = item.color;
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          const pts = [];
+          rows.forEach((r, i) => {
+            const x = plot.l + (rows.length < 2 ? 0 : (i / (rows.length - 1)) * pw);
+            const y = plot.t + ph - ((r.close - yMin) / yRange) * ph;
+            pts.push({ x, y, close: r.close, date: r.date });
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          });
+          ctx.stroke();
+
+          if (currentHoverIndex !== null && currentHoverIndex < pts.length) {
+            const hoverPt = pts[currentHoverIndex];
+            if (hoverPt && idx === 0) {
+              ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+              ctx.setLineDash([4, 4]);
+              ctx.beginPath(); ctx.moveTo(hoverPt.x, plot.t); ctx.lineTo(hoverPt.x, plot.t + ph); ctx.stroke();
+              ctx.setLineDash([]);
+            }
+          }
+        });
+      } else {
+        const assetSeries = activeAssets.map(item => {
+          const rows = state[item.symbol].rows.filter(r => r.close !== null);
+          const baseVal = rows[0].close || 1;
+          const normValues = rows.map(r => ((r.close - baseVal) / baseVal) * 100);
+          return { item, rows, normValues };
+        });
+
+        const offsetStep = (ph * 0.5) / (numActive - 1);
+
+        assetSeries.forEach((series, idx) => {
+          const { item, rows, normValues } = series;
+          const minP = Math.min(...normValues);
+          const maxP = Math.max(...normValues);
+          const margin = (maxP - minP) * 0.12 || 2;
+          const range = (maxP + margin) - (minP - margin) || 1;
+          const baseCenterY = plot.t + ph * 0.25 + idx * offsetStep;
+
+          ctx.strokeStyle = item.color;
+          ctx.lineWidth = 2.2;
+          ctx.beginPath();
+
+          const pts = [];
+          rows.forEach((r, i) => {
+            const x = plot.l + (rows.length < 2 ? 0 : (i / (rows.length - 1)) * pw);
+            const y = baseCenterY - ((normValues[i] - (minP + maxP) / 2) / range) * (ph * 0.35);
+            pts.push({ x, y, close: r.close, date: r.date });
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          });
+          ctx.stroke();
+
+          const lastPt = pts[pts.length - 1];
+          if (lastPt && currentHoverIndex === null) {
+            ctx.fillStyle = item.color;
+            ctx.beginPath(); ctx.arc(lastPt.x, lastPt.y, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.font = 'bold 12px system-ui';
+            ctx.fillText(fmt(lastPt.close, 2) + (item.unit === '%' ? '%' : ''), lastPt.x + 8, lastPt.y + 4);
+          }
+
+          if (currentHoverIndex !== null && currentHoverIndex < pts.length) {
+            const hoverPt = pts[currentHoverIndex];
+            if (hoverPt && idx === 0) {
+              ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+              ctx.setLineDash([4, 4]);
+              ctx.beginPath(); ctx.moveTo(hoverPt.x, plot.t); ctx.lineTo(hoverPt.x, plot.t + ph); ctx.stroke();
+              ctx.setLineDash([]);
+            }
+          }
+        });
+      }
     }
 
     function setupChartHover() {
@@ -764,15 +1049,16 @@ th {
       canvas.addEventListener('mousemove', (e) => {
         const rect = canvas.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
-        const plot = { l: 40, r: 110, t: 30, b: 35 };
+        const activeAssets = assets.filter(a => a.visible && state[a.symbol] && state[a.symbol].rows);
+        if (!activeAssets.length) return;
+
+        const numActive = activeAssets.length;
+        const plot = { l: numActive === 1 || numActive === 2 ? 65 : 40, r: numActive === 2 ? 65 : 110, t: 30, b: 35 };
         const w = canvas.clientWidth;
         const pw = w - plot.l - plot.r;
 
         if (mouseX >= plot.l && mouseX <= w - plot.r) {
           const ratio = (mouseX - plot.l) / pw;
-          const activeAssets = assets.filter(a => a.visible && state[a.symbol] && state[a.symbol].rows);
-          if (!activeAssets.length) return;
-
           const refRows = state[activeAssets[0].symbol].rows;
           const idx = Math.min(Math.max(0, Math.round(ratio * (refRows.length - 1))), refRows.length - 1);
           currentHoverIndex = idx;
@@ -801,54 +1087,92 @@ th {
       });
     }
 
-    function setupAccordion() {
-      const header = $('top30-toggle-btn');
-      const content = $('top30-content-box');
-      const iconText = $('toggle-icon-text');
-      if (!header || !content) return;
+    function setupAccordions() {
+      const macroHeader = $('macro-toggle-btn');
+      const macroContent = $('macro-content-box');
+      const macroIcon = $('macro-toggle-icon');
+      if (macroHeader && macroContent) {
+        macroHeader.addEventListener('click', () => {
+          const isExpanded = macroContent.classList.toggle('expanded');
+          macroIcon.textContent = isExpanded ? '[ 접기 - ]' : '[ 펼치기 + ]';
+        });
+      }
 
-      header.addEventListener('click', () => {
-        const isExpanded = content.classList.toggle('expanded');
-        iconText.textContent = isExpanded ? '[ 접기 - ]' : '[ 펼치기 + ]';
-      });
+      const top30Header = $('top30-toggle-btn');
+      const top30Content = $('top30-content-box');
+      const top30Icon = $('top30-toggle-icon');
+      if (top30Header && top30Content) {
+        top30Header.addEventListener('click', () => {
+          const isExpanded = top30Content.classList.toggle('expanded');
+          top30Icon.textContent = isExpanded ? '[ 접기 - ]' : '[ 펼치기 + ]';
+          
+          if (isExpanded && !isTop30Loaded) {
+            loadTop30RealtimeData();
+          }
+        });
+      }
+
+      const btnHeatmap = $('view-heatmap-btn');
+      const btnTable = $('view-table-btn');
+      const heatmapView = $('treemap-view');
+      const tableView = $('table-view');
+
+      if (btnHeatmap && btnTable) {
+        btnHeatmap.addEventListener('click', (e) => {
+          e.stopPropagation();
+          btnHeatmap.classList.add('active');
+          btnTable.classList.remove('active');
+          heatmapView.style.display = 'flex';
+          tableView.style.display = 'none';
+        });
+
+        btnTable.addEventListener('click', (e) => {
+          e.stopPropagation();
+          btnTable.classList.add('active');
+          btnHeatmap.classList.remove('active');
+          tableView.style.display = 'block';
+          heatmapView.style.display = 'none';
+        });
+      }
     }
 
     async function load() {
       const titleBtn = $('title-refresh');
-      if (titleBtn.disabled) return;
+      if (titleBtn && titleBtn.disabled) return;
       if (titleBtn) titleBtn.disabled = true;
       
       try {
         const range = $('range').value;
         renderLegend();
         fetchFx();
-        renderMacro();
-        setupAccordion();
+        renderMacroCards();
         
         for (let item of assets) {
           try {
             state[item.symbol] = await fetchAsset(item, range);
           } catch (e) {}
         }
-        
-        for (let stock of top30Stocks) {
-          try {
-            top30State[stock.symbol] = await fetchSingleSymbol(stock.symbol, range);
-          } catch (e) {}
-        }
 
         renderCards();
-        renderTop30Table();
         drawIntegratedChart();
         setupChartHover();
+
+        if ($('top30-content-box').classList.contains('expanded')) {
+          loadTop30RealtimeData();
+        }
       } catch (e) {
       } finally {
         if (titleBtn) titleBtn.disabled = false;
       }
     }
 
-    $('title-refresh').addEventListener('click', load);$('range').addEventListener('change', load);
+    $('title-refresh').addEventListener('click', load);
+    $('range').addEventListener('change', () => {
+      isTop30Loaded = false;
+      load();
+    });
 
+    setupAccordions();
     load();
   })();
   </script>
