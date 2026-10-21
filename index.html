@@ -39,8 +39,16 @@ main {
 .title-wrap {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
   margin-bottom: 6px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.title-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 h1 {
@@ -340,7 +348,6 @@ th {
   font-weight: bold;
 }
 
-/* 주식 트라이맵(Treemap/히트맵) 스타일 */
 .treemap-container {
   display: flex;
   flex-wrap: wrap;
@@ -443,8 +450,13 @@ th {
 <body>
   <main>
     <div class="title-wrap">
-      <h1>미국 시장 종합 대시보드</h1>
-      <button class="icon-btn" id="title-refresh" title="전체 새로고침">🔄</button>
+      <div class="title-left">
+        <h1>미국 시장 종합 대시보드</h1>
+        <button class="icon-btn" id="title-refresh" title="전체 새로고침">🔄</button>
+      </div>
+      <div>
+        <button id="api-key-btn" style="font-size: 13px;">⚙️ Gemini API Key 설정</button>
+      </div>
     </div>
     <p class="sub">주가지수 · 국채금리 · 원자재 · 비트코인 및 시총 상위 30위 리스트 분석</p>
 
@@ -464,7 +476,7 @@ th {
       <p id="fx-status" class="sub">환율 데이터 연결 중…</p>
     </section>
 
-    <!-- 💡 한국어 뉴스 피드가 적용된 실시간 경제 뉴스 브리핑 -->
+    <!-- 💡 실시간 경제 뉴스 브리핑 (RSS 실패 시 Gemini 3.8 Flash 백업 연동) -->
     <section class="panel">
       <div class="accordion-header" id="news-toggle-btn">
         <div style="display: flex; align-items: center; gap: 8px;">
@@ -567,7 +579,7 @@ th {
       </div>
     </section>
 
-    <p class="notice">데이터 출처: Yahoo Finance, Frankfurter API, Investing.com 코리아 RSS, Trading Economics.</p>
+    <p class="notice">데이터 출처: Yahoo Finance, Frankfurter API, Investing.com 코리아 RSS, Gemini 3.8 Flash API, Trading Economics.</p>
   </main>
 
   <script>
@@ -643,6 +655,19 @@ th {
     const fmt = (n, d = 2) => Number(n).toLocaleString('en-US', {minimumFractionDigits: d, maximumFractionDigits: d});
     const dateFmt = s => new Date(s + 'T12:00:00Z').toLocaleDateString('ko-KR', {year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'UTC'});
 
+    /* ---------------- API Key 설정 관리 ---------------- */
+    function setupApiKeyModal() {
+      const btn = $('api-key-btn');
+      btn.addEventListener('click', () => {
+        const currentKey = localStorage.getItem('gemini_api_key') || '';
+        const userKey = prompt('Gemini API Key를 입력하세요 (브라우저 로컬 스토리지에 안전하게 저장됩니다):', currentKey);
+        if (userKey !== null) {
+          localStorage.setItem('gemini_api_key', userKey.trim());
+          alert('API Key가 저장되었습니다. 뉴스 로드 실패 시 Gemini 3.8 Flash가 활성화됩니다.');
+        }
+      });
+    }
+
     /* ---------------- 환율 데이터 ---------------- */
     const fxState = {};
     function renderFx() {
@@ -697,7 +722,61 @@ th {
       }
     }
 
-    /* 💡 Investing.com 한국어 RSS 피드 적용 */
+    /* 💡 Gemini 3.8 Flash API를 이용한 실시간 경제 요약 백업 함수 */
+    async function fetchGeminiNewsFallback() {
+      const apiKey = localStorage.getItem('gemini_api_key');
+      const newsCards = $('news-cards');
+      if (!apiKey) {
+        newsCards.innerHTML = '<div class="card">실시간 뉴스 피드 로드 실패. 우측 상단의 <b>[Gemini API Key 설정]</b>을 통해 키를 등록하시면 Gemini 3.8 Flash AI 브리핑을 이용하실 수 있습니다.</div>';
+        return;
+      }
+
+      newsCards.innerHTML = '<div class="card">🤖 RSS 피드 연결 실패로 Gemini 3.8 Flash 모델이 실시간 경제 브리핑을 생성 중입니다…</div>';
+
+      try {
+        const prompt = "현재 글로벌 경제 및 미국 증시와 관련된 핵심 이슈 3가지를 분석하여 각각 제목과 상세 요약 형태로 한국어 카드로 보여주도록 JSON 배열 형식([{title: '...', desc: '...'}])으로만 답변해줘. 마크다운 백틱 없이 순수 JSON만 출력해.";
+        // Gemini 3.8 Flash API 엔드포인트 적용
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
+        
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }]
+          })
+        });
+
+        const data = await res.json();
+        const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        
+        if (textResponse) {
+          // JSON 파싱 시도
+          const cleanJsonStr = textResponse.replace(/```json/g, '').replace(/```/g, '').trim();
+          const items = JSON.parse(cleanJsonStr);
+
+          newsCards.innerHTML = '';
+          items.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.style.height = '100%';
+            card.innerHTML = `
+              <div class="name" style="font-size: 14px; margin-bottom: 6px; line-height: 1.4;">${item.title}</div>
+              <div class="ticker" style="color: var(--accent);">Gemini 3.8 Flash AI 브리핑</div>
+              <div class="meta" style="margin-top: 8px; line-height: 1.35; color: var(--muted);">${item.desc}</div>
+              <div class="link-hint">✨ AI 실시간 생성 완료</div>
+            `;
+            newsCards.appendChild(card);
+          });
+          isNewsLoaded = true;
+        } else {
+          throw new Error('AI 응답 생성 실패');
+        }
+      } catch (err) {
+        newsCards.innerHTML = '<div class="card">뉴스 피드 및 Gemini 3.8 Flash AI 요약 로드에 모두 실패했습니다. API 키를 확인해주세요.</div>';
+      }
+    }
+
+    /* 💡 RSS 피드 연동 (실패 시 Gemini 3.8 Flash 백업 자동 호출) */
     async function fetchRealtimeNews() {
       const newsCards = $('news-cards');
       const btn = $('news-refresh-btn');
@@ -709,6 +788,7 @@ th {
         const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(rssUrl)}`;
         
         const res = await fetch(proxyUrl, {cache: 'no-store'});
+        if (!res.ok) throw new Error('Network response was not ok');
         const xmlText = await res.text();
         
         const parser = new DOMParser();
@@ -752,7 +832,8 @@ th {
           throw new Error('RSS 아이템 없음');
         }
       } catch (e) {
-        newsCards.innerHTML = '<div class="card">실시간 뉴스 피드 로드 실패 (네트워크 상태를 확인해주세요.)</div>';
+        // RSS 실패 시 Gemini 3.8 Flash 모델 호출 백업 실행
+        await fetchGeminiNewsFallback();
       } finally {
         if (btn) btn.disabled = false;
       }
@@ -1302,6 +1383,7 @@ th {
       load();
     });
 
+    setupApiKeyModal();
     setupAccordions();
     load();
   })();
