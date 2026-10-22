@@ -460,7 +460,7 @@ th {
     </div>
     <p class="sub">주가지수 · 국채금리 · 원자재 · 비트코인 및 시총 상위 30위 리스트 분석</p>
 
-    <!-- 1. 주요 시장 지표 요약 카드 -->
+    <!-- 1. 주요 시장 지표 요약 카드 (Dow Jones 바로 다음 순서에 VIX, 필라델피아 반도체 배치) -->
     <h2 class="section-title">주요 시장 지표</h2>
     <div id="cards" class="cards">
       <div class="card">시세를 불러오는 중…</div>
@@ -476,7 +476,7 @@ th {
       <p id="fx-status" class="sub">환율 데이터 연결 중…</p>
     </section>
 
-    <!-- 💡 실시간 경제 뉴스 브리핑 (RSS 실패 시 Gemini 3.8 Flash 백업 연동) -->
+    <!-- 실시간 경제 뉴스 브리핑 -->
     <section class="panel">
       <div class="accordion-header" id="news-toggle-btn">
         <div style="display: flex; align-items: center; gap: 8px;">
@@ -492,12 +492,12 @@ th {
       </div>
     </section>
 
-    <!-- 3. 핵심 경제 지표 (아코디언) -->
+    <!-- 3. 핵심 경제 지표 (CNN 공포탐욕지수 공식 CNN 링크 반영) -->
     <section class="panel">
       <div class="accordion-header" id="macro-toggle-btn">
         <div>
-          <h2>핵심 경제 지표 (실시간 상세 보기)</h2>
-          <p class="sub" style="margin: 2px 0 0;">클릭 시 해당 지표의 상세 캘린더/차트 페이지로 이동합니다.</p>
+          <h2>핵심 경제 지표 및 투자 심리</h2>
+          <p class="sub" style="margin: 2px 0 0;">주요 거시경제 지표 및 투자 심리 바로가기</p>
         </div>
         <span class="toggle-icon" id="macro-toggle-icon">[ 펼치기 + ]</span>
       </div>
@@ -579,22 +579,25 @@ th {
       </div>
     </section>
 
-    <p class="notice">데이터 출처: Yahoo Finance, Frankfurter API, Investing.com 코리아 RSS, Gemini 3.8 Flash API, Trading Economics.</p>
+    <p class="notice">데이터 출처: Yahoo Finance, Frankfurter API, Investing.com 코리아 RSS, CNN Business, Gemini 3.8 Flash API.</p>
   </main>
 
   <script>
   (function(){
     'use strict';
     
+    // 💡 주요 시장 지표 배열: S&P 500, NASDAQ, Dow Jones 바로 다음에 VIX 및 필라델피아 반도체 배치
     const assets = [
       { symbol: '^GSPC', name: 'S&P 500', unit: '포인트', kind: 'index', color: '#818cf8', visible: true },
       { symbol: '^IXIC', name: 'NASDAQ', unit: '포인트', kind: 'index', color: '#38bdf8', visible: false },
       { symbol: '^DJI', name: 'Dow Jones', unit: '포인트', kind: 'index', color: '#2dd4bf', visible: false },
-      { symbol: '^TNX', name: '미국 10년물 국채금리', unit: '%', kind: 'yield', color: '#f472b6', visible: true },
+      { symbol: '^VIX', name: 'VIX 변동성 지수', unit: '포인트', kind: 'index', color: '#f472b6', visible: true },
+      { symbol: '^SOX', name: '필라델피아 반도체', unit: '포인트', kind: 'index', color: '#38bdf8', visible: true },
+      { symbol: '^TNX', name: '미국 10년물 국채금리', unit: '%', kind: 'yield', color: '#f472b6', visible: false },
       { symbol: '^IRX', name: '미국 2년물 국채금리', unit: '%', kind: 'yield', color: '#fbbf24', visible: false },
       { symbol: 'CL=F', name: 'WTI 원유', unit: 'USD/배럴', kind: 'commodity', color: '#f87171', visible: false },
-      { symbol: 'BZ=F', name: '브렌트유', unit: 'USD/배럴', kind: 'commodity', color: '#fb923c', visible: true },
-      { symbol: 'GC=F', name: '금 선물', unit: 'USD/트로이온스', kind: 'commodity', color: '#facc15', visible: true },
+      { symbol: 'BZ=F', name: '브렌트유', unit: 'USD/배럴', kind: 'commodity', color: '#fb923c', visible: false },
+      { symbol: 'GC=F', name: '금 선물', unit: 'USD/트로이온스', kind: 'commodity', color: '#facc15', visible: false },
       { symbol: 'SI=F', name: '은 선물', unit: 'USD/트로이온스', kind: 'commodity', color: '#c084fc', visible: false },
       { symbol: 'BTC-USD', name: '비트코인', unit: 'USD', kind: 'crypto', color: '#4ade80', visible: false }
     ];
@@ -638,7 +641,10 @@ th {
       { symbol: 'CVX', name: '셰브론', sector: 'Energy', weight: 3 }
     ];
 
+    // 💡 CNN 공포탐욕지수 공식 CNN 사이트 링크 반영
     const macroIndicators = [
+      { name: 'CNN 공포 & 탐욕 지수', ticker: 'Fear & Greed', desc: '투자자 심리 상태 종합 지표', link: 'https://www.cnn.com/markets/fear-and-greed', source: 'CNN Business' },
+      { name: '미국 기준 금리', ticker: 'Fed Funds Rate', desc: '미 연방준비제도(Fed) 정책 금리 결정', link: 'https://kr.investing.com/economic-calendar/fed-interest-rate-decision-168', source: 'Investing.com' },
       { name: '미국 근원 CPI', ticker: 'Core CPI', desc: '식료품·에너지 제외 소비자물가지수', link: 'https://kr.investing.com/economic-calendar/core-cpi-736', source: 'Investing.com' },
       { name: '미국 헤드라인 CPI', ticker: 'CPI YoY', desc: '전체 소비자물가지수 발표', link: 'https://kr.investing.com/economic-calendar/cpi-733', source: 'Investing.com' },
       { name: '미국 비농업고용지수', ticker: 'NFP', desc: '비농업 부문 신규 고용자 수 변화', link: 'https://kr.investing.com/economic-calendar/nonfarm-payrolls-227', source: 'Investing.com' },
@@ -722,7 +728,33 @@ th {
       }
     }
 
-    /* 💡 Gemini 3.8 Flash API를 이용한 실시간 경제 요약 백업 함수 */
+    function renderMacroCards() {
+      const host = $('macro-cards');
+      if (!host) return;
+      host.innerHTML = '';
+      macroIndicators.forEach(item => {
+        const a = document.createElement('a');
+        a.href = item.link;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.className = 'macro-card-link';
+
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.style.height = '100%';
+        card.innerHTML = `
+          <div class="name">${item.name}</div>
+          <div class="ticker">${item.ticker}</div>
+          <div class="price" style="font-size: 18px; margin: 12px 0 6px; color: var(--accent);">상세 보기 ↗</div>
+          <div class="meta">${item.desc}</div>
+          <div class="link-hint">🔗 ${item.source} 이동</div>
+        `;
+        a.appendChild(card);
+        host.appendChild(a);
+      });
+    }
+
+    /* Gemini 3.8 Flash API를 이용한 실시간 경제 요약 백업 함수 */
     async function fetchGeminiNewsFallback() {
       const apiKey = localStorage.getItem('gemini_api_key');
       const newsCards = $('news-cards');
@@ -735,7 +767,6 @@ th {
 
       try {
         const prompt = "현재 글로벌 경제 및 미국 증시와 관련된 핵심 이슈 3가지를 분석하여 각각 제목과 상세 요약 형태로 한국어 카드로 보여주도록 JSON 배열 형식([{title: '...', desc: '...'}])으로만 답변해줘. 마크다운 백틱 없이 순수 JSON만 출력해.";
-        // Gemini 3.8 Flash API 엔드포인트 적용
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
         
         const res = await fetch(url, {
@@ -750,7 +781,6 @@ th {
         const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
         
         if (textResponse) {
-          // JSON 파싱 시도
           const cleanJsonStr = textResponse.replace(/```json/g, '').replace(/```/g, '').trim();
           const items = JSON.parse(cleanJsonStr);
 
@@ -776,7 +806,6 @@ th {
       }
     }
 
-    /* 💡 RSS 피드 연동 (실패 시 Gemini 3.8 Flash 백업 자동 호출) */
     async function fetchRealtimeNews() {
       const newsCards = $('news-cards');
       const btn = $('news-refresh-btn');
@@ -785,7 +814,7 @@ th {
 
       try {
         const rssUrl = 'https://kr.investing.com/rss/news.rss';
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(rssUrl)}`;
+        const proxyUrl = `https://proxy.cors.dev/${rssUrl}`;
         
         const res = await fetch(proxyUrl, {cache: 'no-store'});
         if (!res.ok) throw new Error('Network response was not ok');
@@ -832,37 +861,10 @@ th {
           throw new Error('RSS 아이템 없음');
         }
       } catch (e) {
-        // RSS 실패 시 Gemini 3.8 Flash 모델 호출 백업 실행
         await fetchGeminiNewsFallback();
       } finally {
         if (btn) btn.disabled = false;
       }
-    }
-
-    function renderMacroCards() {
-      const host = $('macro-cards');
-      if (!host) return;
-      host.innerHTML = '';
-      macroIndicators.forEach(item => {
-        const a = document.createElement('a');
-        a.href = item.link;
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-        a.className = 'macro-card-link';
-
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.style.height = '100%';
-        card.innerHTML = `
-          <div class="name">${item.name}</div>
-          <div class="ticker">${item.ticker}</div>
-          <div class="price" style="font-size: 18px; margin: 12px 0 6px; color: var(--accent);">상세 캘린더 보기 ↗</div>
-          <div class="meta">${item.desc}</div>
-          <div class="link-hint">🔗 ${item.source} 이동</div>
-        `;
-        a.appendChild(card);
-        host.appendChild(a);
-      });
     }
 
     async function fetchSingleSymbol(sym, range) {
