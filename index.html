@@ -552,7 +552,7 @@ th {
             <button id="view-heatmap-btn" class="active">🗺️ 히트맵 보기</button>
             <button id="view-table-btn">📋 리스트 표 보기</button>
           </div>
-          <div id="top30-last-date" style="font-size: 12px; color: var(--accent); font-weight: 600;">최신 수신 데이터 기준일: 2026-10-21 (미국 마감)</div>
+          <div id="top30-last-date" style="font-size: 12px; color: var(--accent); font-weight: 600;">최신 수신 데이터 기준일: N/A</div>
         </div>
 
         <div id="treemap-view" class="treemap-container">
@@ -588,43 +588,6 @@ th {
   <script>
   (function(){
     'use strict';
-
-    const manualOverrides = {
-      'AAPL': { close: 339.50, prev: 342.94 },
-      'MSFT': { close: 531.87, prev: 533.52 },
-      'NVDA': { close: 221.97, prev: 216.47 },
-      'GOOGL': { close: 184.50, prev: 182.10 },
-      'AMZN': { close: 215.30, prev: 213.80 },
-      'META': { close: 610.20, prev: 602.50 },
-      'BRK-B': { close: 478.90, prev: 476.50 },
-      'LLY': { close: 940.10, prev: 932.00 },
-      'AVGO': { close: 210.40, prev: 207.80 },
-      'TSLA': { close: 242.10, prev: 238.60 },
-      'JPM': { close: 225.80, prev: 224.10 },
-      'V': { close: 310.50, prev: 308.20 },
-      'WMT': { close: 88.40, prev: 87.90 },
-      'XOM': { close: 118.50, prev: 117.90 },
-      'MA': { close: 520.10, prev: 515.60 },
-      'UNH': { close: 575.20, prev: 570.40 },
-      'COST': { close: 910.40, prev: 902.10 },
-      'HD': { close: 412.30, prev: 408.50 },
-      'NFLX': { close: 1120.50, prev: 1105.00 },
-      'PG': { close: 172.30, prev: 171.80 },
-      'JNJ': { close: 161.40, prev: 160.90 },
-      'BAC': { close: 46.20, prev: 45.80 },
-      'AMD': { close: 135.20, prev: 133.40 },
-      'ORCL': { close: 185.60, prev: 183.20 },
-      'ABBV': { close: 205.10, prev: 203.80 },
-      'CRM': { close: 312.40, prev: 309.50 },
-      'TMUS': { close: 235.10, prev: 234.00 },
-      'CVX': { close: 148.90, prev: 148.20 },
-      'WFC': { close: 72.40, prev: 71.80 },
-      'MU': { close: 115.30, prev: 112.10 },
-      'PLTR': { close: 44.50, prev: 43.80 },
-      'INTC': { close: 22.40, prev: 22.10 }
-    };
-
-    const forcedLatestDate = '2026-10-21';
 
     const assets = [
       { symbol: '^GSPC', name: 'S&P 500', unit: '포인트', kind: 'index', color: '#818cf8', visible: true },
@@ -734,9 +697,9 @@ th {
         card.innerHTML = `
           <div class="name">${item.name}</div>
           <div class="ticker">${item.desc}</div>
-          <div class="price">${Number.isFinite(item.value) ? fmt(item.value, item.digits) + ' ' + item.unit : '데이터 없음'}</div>
+          <div class="price">${Number.isFinite(item.value) ? fmt(item.value, item.digits) + ' ' + item.unit : 'N/A'}</div>
           <div class="change ${delta >= 0 ? 'positive' : 'negative'}">${delta !== null ? (delta >= 0 ? '+' : '') + fmt(delta, item.digits) + ' (' + (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%)' : ''}</div>
-          <div class="meta">${fxState.date ? '기준일: ' + fxState.date : ''}</div>
+          <div class="meta">${fxState.date ? '기준일: ' + fxState.date : '기준일: N/A'}</div>
         `;
         host.appendChild(card);
       });
@@ -762,7 +725,7 @@ th {
         if (fxStatus) fxStatus.style.display = 'none';
       } catch (e) {
         const fxStatus = $('fx-status');
-        if (fxStatus) fxStatus.textContent = '환율 데이터 연결 실패';
+        if (fxStatus) fxStatus.textContent = '환율 데이터 연결 실패 (N/A)';
       }
     }
 
@@ -937,23 +900,17 @@ th {
         close: q.close[i]
       })).filter(r => r.close !== null);
 
-      if (rows.length > 0) {
-        const lastRow = rows[rows.length - 1];
-        if (manualOverrides[sym]) {
-          lastRow.close = manualOverrides[sym].close;
-          lastRow.date = forcedLatestDate;
-        } else if (lastRow.date === '2026-10-20') {
-          lastRow.date = forcedLatestDate;
-        }
-      }
-
       if (range === '1w' && rows.length > 0) rows = rows.slice(-7);
       return { rows };
     }
 
     async function fetchAsset(item, range) {
-      const res = await fetchSingleSymbol(item.symbol, range);
-      return { ...item, ...res };
+      try {
+        const res = await fetchSingleSymbol(item.symbol, range);
+        return { ...item, ...res };
+      } catch (e) {
+        return { ...item, rows: [] };
+      }
     }
 
     function renderCards() {
@@ -962,19 +919,23 @@ th {
       assets.forEach(item => {
         const d = state[item.symbol], card = document.createElement('div');
         card.className = 'card';
-        const latest = d && d.rows && d.rows[d.rows.length - 1];
-        const prev = d && d.rows && d.rows[d.rows.length - 2];
+        const latest = d && d.rows && d.rows.length > 0 ? d.rows[d.rows.length - 1] : null;
+        const prev = d && d.rows && d.rows.length > 1 ? d.rows[d.rows.length - 2] : null;
+        
         let delta = null, pct = null;
-        if (latest && prev && prev.close) {
+        if (latest && prev && prev.close && latest.close) {
           delta = latest.close - prev.close;
           pct = delta / prev.close * 100;
         }
+
+        const latestDateStr = latest && latest.date ? latest.date : 'N/A';
+
         card.innerHTML = `
           <div class="name">${item.name}</div>
           <div class="ticker">${item.symbol}</div>
-          <div class="price">${latest ? fmt(latest.close, 2) + (item.unit === '%' ? '%' : '') : '데이터 없음'}</div>
-          <div class="change ${delta >= 0 ? 'positive' : 'negative'}">${delta !== null ? (delta >= 0 ? '+' : '') + fmt(delta, 2) + ' (' + (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%)' : ''}</div>
-          <div class="meta">기준일(미국 마감): ${forcedLatestDate}</div>
+          <div class="price">${latest && latest.close ? fmt(latest.close, 2) + (item.unit === '%' ? '%' : '') : 'N/A'}</div>
+          <div class="change ${delta >= 0 ? 'positive' : 'negative'}">${delta !== null ? (delta >= 0 ? '+' : '') + fmt(delta, 2) + ' (' + (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%)' : 'N/A'}</div>
+          <div class="meta">기준일(미국 마감): ${latestDateStr}</div>
         `;
         host.appendChild(card);
       });
@@ -985,13 +946,15 @@ th {
       if (btn) btn.disabled = true;
 
       const treemapContainer = $('treemap-view');
-      if (treemapContainer) treemapContainer.innerHTML = '<div style="width: 100%; text-align: center; padding: 40px; color: var(--muted);">⚡ 시가총액 상위 30위 최신 마감 시세를 갱신 중입니다…</div>';
+      if (treemapContainer) treemapContainer.innerHTML = '<div style="width: 100%; text-align: center; padding: 40px; color: var(--muted);">⚡ 야후 파이낸스에서 상위 30위 실시간 시세를 조회 중입니다…</div>';
 
       const range = $('range').value;
       await Promise.all(top30Stocks.map(async (stock) => {
         try {
           top30State[stock.symbol] = await fetchSingleSymbol(stock.symbol, range);
-        } catch(e) {}
+        } catch(e) {
+          top30State[stock.symbol] = { rows: [] };
+        }
       }));
       
       isTop30Loaded = true;
@@ -1034,6 +997,18 @@ th {
         totalWeight += secWeight;
       });
 
+      let maxDate = '';
+      top30Stocks.forEach(stock => {
+        const d = top30State[stock.symbol];
+        const latest = d && d.rows && d.rows.length > 0 ? d.rows[d.rows.length - 1] : null;
+        if (latest && latest.date) {
+          if (!maxDate || latest.date > maxDate) {
+            maxDate = latest.date;
+          }
+        }
+      });
+      if (!maxDate) maxDate = 'N/A';
+
       Object.keys(sectors).forEach(secName => {
         const secBlock = document.createElement('div');
         secBlock.className = 'sector-block';
@@ -1051,13 +1026,8 @@ th {
 
         sectors[secName].forEach(stock => {
           const d = top30State[stock.symbol];
-          let latest = d && d.rows ? d.rows[d.rows.length - 1] : null;
-          let prev = d && d.rows ? d.rows[d.rows.length - 2] : null;
-
-          if (manualOverrides[stock.symbol]) {
-            latest = { close: manualOverrides[stock.symbol].close, date: forcedLatestDate };
-            prev = { close: manualOverrides[stock.symbol].prev };
-          }
+          let latest = d && d.rows && d.rows.length > 0 ? d.rows[d.rows.length - 1] : null;
+          let prev = d && d.rows && d.rows.length > 1 ? d.rows[d.rows.length - 2] : null;
 
           let pct = null;
           if (latest && prev && latest.close && prev.close) {
@@ -1070,10 +1040,11 @@ th {
           node.style.backgroundColor = getHeatmapColor(pct);
 
           const sign = pct !== null && pct >= 0 ? '+' : '';
-          const pctStr = pct !== null ? `${sign}${pct.toFixed(2)}%` : '-';
-          const priceStr = latest ? `$${fmt(latest.close, 2)}` : '';
+          const pctStr = pct !== null ? `${sign}${pct.toFixed(2)}%` : 'N/A';
+          const priceStr = latest && latest.close ? `$${fmt(latest.close, 2)}` : 'N/A';
+          const nodeDate = latest && latest.date ? latest.date : 'N/A';
 
-          node.title = `${stock.name} (${stock.symbol})\n마감가: ${priceStr}\n등락률: ${pctStr}\n기준일: ${forcedLatestDate}`;
+          node.title = `${stock.name} (${stock.symbol})\n마감가: ${priceStr}\n등락률: ${pctStr}\n기준일: ${nodeDate}`;
           node.innerHTML = `
             <div class="symbol">${stock.symbol}</div>
             <div class="pct">${pctStr}</div>
@@ -1089,7 +1060,7 @@ th {
 
       const dateLabel = $('top30-last-date');
       if (dateLabel) {
-        dateLabel.textContent = `최신 수신 데이터 기준일: ${forcedLatestDate} (미국 마감)`;
+        dateLabel.textContent = `최신 수신 데이터 기준일: ${maxDate} (미국 마감)`;
       }
     }
 
@@ -1098,15 +1069,20 @@ th {
       if (!tbody) return;
       tbody.innerHTML = '';
 
+      let maxDate = '';
       top30Stocks.forEach(stock => {
         const d = top30State[stock.symbol];
-        let latest = d && d.rows ? d.rows[d.rows.length - 1] : null;
-        let prev = d && d.rows ? d.rows[d.rows.length - 2] : null;
-
-        if (manualOverrides[stock.symbol]) {
-          latest = { close: manualOverrides[stock.symbol].close, date: forcedLatestDate };
-          prev = { close: manualOverrides[stock.symbol].prev };
+        const latest = d && d.rows && d.rows.length > 0 ? d.rows[d.rows.length - 1] : null;
+        if (latest && latest.date) {
+          if (!maxDate || latest.date > maxDate) maxDate = latest.date;
         }
+      });
+      if (!maxDate) maxDate = 'N/A';
+
+      top30Stocks.forEach(stock => {
+        const d = top30State[stock.symbol];
+        let latest = d && d.rows && d.rows.length > 0 ? d.rows[d.rows.length - 1] : null;
+        let prev = d && d.rows && d.rows.length > 1 ? d.rows[d.rows.length - 2] : null;
 
         let delta = null, pct = null;
         if (latest && prev && latest.close && prev.close) {
@@ -1117,15 +1093,16 @@ th {
         const tr = document.createElement('tr');
         const sign = delta !== null && delta >= 0 ? '+' : '';
         const cls = delta !== null ? (delta >= 0 ? 'positive' : 'negative') : '';
+        const rowDate = latest && latest.date ? latest.date : 'N/A';
 
         tr.innerHTML = `
           <td style="text-align: left; font-weight: 650; color: var(--accent);">${stock.symbol}</td>
           <td style="text-align: left;">${stock.name}</td>
-          <td>${latest ? '$' + fmt(latest.close, 2) : '조회 실패'}</td>
-          <td>${prev ? '$' + fmt(prev.close, 2) : '-'}</td>
-          <td class="${cls}">${delta !== null ? sign + fmt(delta, 2) : '-'}</td>
-          <td class="${cls}">${pct !== null ? sign + pct.toFixed(2) + '%' : '-'}</td>
-          <td style="color: var(--muted);">${forcedLatestDate}</td>
+          <td>${latest && latest.close ? '$' + fmt(latest.close, 2) : 'N/A'}</td>
+          <td>${prev && prev.close ? '$' + fmt(prev.close, 2) : 'N/A'}</td>
+          <td class="${cls}">${delta !== null ? sign + fmt(delta, 2) : 'N/A'}</td>
+          <td class="${cls}">${pct !== null ? sign + pct.toFixed(2) + '%' : 'N/A'}</td>
+          <td style="color: var(--muted);">${rowDate}</td>
         `;
         tbody.appendChild(tr);
       });
@@ -1193,6 +1170,7 @@ th {
       if (numActive === 1 || numActive === 2) {
         activeAssets.forEach((item, idx) => {
           const rows = state[item.symbol].rows.filter(r => r.close !== null);
+          if (rows.length === 0) return;
           const vals = rows.map(r => r.close);
           const minV = Math.min(...vals);
           const maxV = Math.max(...vals);
@@ -1241,12 +1219,13 @@ th {
       } else {
         const assetSeries = activeAssets.map(item => {
           const rows = state[item.symbol].rows.filter(r => r.close !== null);
+          if (rows.length === 0) return null;
           const baseVal = rows[0].close || 1;
           const normValues = rows.map(r => ((r.close - baseVal) / baseVal) * 100);
           return { item, rows, normValues };
-        });
+        }).filter(Boolean);
 
-        const offsetStep = (ph * 0.5) / (numActive - 1);
+        const offsetStep = (ph * 0.5) / (numActive - 1 || 1);
 
         assetSeries.forEach((series, idx) => {
           const { item, rows, normValues } = series;
@@ -1310,10 +1289,12 @@ th {
 
         if (mouseX >= plot.l && mouseX <= w - plot.r) {
           const ratio = (mouseX - plot.l) / pw;
-          const activeAssets = assets.filter(a => a.visible && state[a.symbol] && state[a.symbol].rows);
+          const activeAssets = assets.filter(a => a.visible && state[a.symbol] && state[a.symbol].rows && state[a.symbol].rows.length > 0);
           if (!activeAssets.length) return;
 
           const refRows = state[activeAssets[0].symbol].rows;
+          if (!refRows || refRows.length === 0) return;
+
           const idx = Math.min(Math.max(0, Math.round(ratio * (refRows.length - 1))), refRows.length - 1);
           currentHoverIndex = idx;
           drawIntegratedChart();
@@ -1442,9 +1423,7 @@ th {
         renderMacroCards();
         
         for (let item of assets) {
-          try {
-            state[item.symbol] = await fetchAsset(item, range);
-          } catch (e) {}
+          state[item.symbol] = await fetchAsset(item, range);
         }
 
         renderCards();
