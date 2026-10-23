@@ -8,7 +8,7 @@
   "description": "미국 주가지수, 국채금리, 환율, 원자재 및 시가총액 상위 30위 종목을 실시간으로 분석하는 대시보드입니다.",
   "icons": [
     {
-      "src": "stock.png",
+      "src": "./stock.png",
       "sizes": "512x512",
       "type": "image/png"
     }
